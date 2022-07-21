@@ -165,7 +165,7 @@ HARDWARE AND SOFTWARE REQUIREMENTS:
 3.7	os
 3.8	pip
 4.	MYSQL community server
-5.	Command prompt
+5.	Command prompt.
  
 
 
