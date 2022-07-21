@@ -1,0 +1,67 @@
+import cv2
+import numpy as np import face_recognition import os
+from attendance import *
+
+
+def findEncodings(path):
+print(“in finding encoding func”) classNames = []
+encodeList = []
+myList = os.listdir(path) print(myList)
+for cl in myList:
+curImg = cv2.imread(f’{path}/{cl}’) # images.append(curImg)
+classNames.append(os.path.splitext(cl)[0])
+curImg = cv2.cvtColor(curImg, cv2.COLOR_BGR2RGB) encode = face_recognition.face_encodings(curImg)[0] encodeList.append(encode)
+print(“Encoding Completed”) return encodeList, classNames
+
+
+
+def markattendance(i): import mysql.connector import datetime as dt
+connection = mysql.connector.connect(host=’localhost’,
+database=’Attendance’,
+ 
+user=’root’, password=’@Raju1210’)
+
+c = connection.cursor() import datetime as dt now = dt.datetime.now() day = str(now.day) month = str(now.month) year = str(now.year) hour = str(now.hour)
+minute = str(now.minute)
+date = year + “-“ + month + “-“ + day time = hour + “:”+minute
+name = i
+a = “present”
+c.execute(“SELECT Date, Name FROM students WHERE Date = %s AND Name
+= %s “, (date, name)) data = c.fetchall() if len(data) == 0:
+query = “INSERT INTO students (Date, Name, Time, Attendance) VALUES(%s,%s,%s,%s); “
+c.execute(query, (date, name, time, a)) print(f”Attendance marked for {name} on {time} “)
+else:
+print(f”Attendanceq already marked for {name}”) connection.commit()
+
+def recognizeFaces(img, encodeList, classNames, scaleFactor=0.25): imgFaces = img.copy()
+imgS = cv2.resize(img, (0, 0), None, scaleFactor, scaleFactor)
+ 
+imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB) facesCurrentImage = face_recognition.face_locations(imgS)
+encodeCurImage = face_recognition.face_encodings(imgS, facesCurrentImage) names = []
+
+for encodeFace, faceLoc in zip(encodeCurImage, facesCurrentImage): result = face_recognition.compare_faces(encodeList, encodeFace) faceDis = face_recognition.face_distance(encodeList, encodeFace) matchIndex = np.argmin(faceDis)
+
+if result[matchIndex]:
+name = classNames[matchIndex].upper() color = (0, 255, 0)
+
+else:
+color = (0, 0, 255) name = ‘unknown’
+names.append(name) y1, x2, y2, x1 = faceLoc
+y1, x2, y2, x1 = int(y1 / scaleFactor), int(x2 / scaleFactor), int(y2 / scaleFactor), int(x1 / scaleFactor)
+cv2.rectangle(imgFaces, (x1, y1), (x2, y2), color, 2) cv2.rectangle(imgFaces, (x1, y2 – 35), (x2, y2), color, cv2.FILLED) cv2.putText(imgFaces, name, (x1 + 6, y2 – 6),
+cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+
+
+for I in names:
+if I in names and I != “unknown”: markattendance(i)
+return imgFaces
+ 
+encodeList, classNames = findEncodings(“images”) print(classNames)
+frameWidth = 640
+frameHeight = 480
+
+
+cap = cv2.VideoCapture(0) while True:
+success, img = cap.read()
+imgFaces = recognizeFaces(img, encodeList, classNames) cv2.imshow(“Image”, imgFaces)
+if cv2.waitKey(1) & 0Xff == ord(“q”): break
